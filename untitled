@@ -1,0 +1,286 @@
+# ============================================
+# Proyecto: Clasificador Automático de Recibos
+# MVP en Python
+# ============================================
+
+import pytesseract
+from PIL import Image
+import spacy
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+# ---------------------------
+# 1. OCR: convertir imagen a texto
+# ---------------------------
+def extraer_texto_recibo(ruta_imagen):
+    imagen = Image.open(ruta_imagen)
+    texto = pytesseract.image_to_string(imagen, lang="spa")  # OCR en español
+    return texto
+
+# ---------------------------
+# 2. PLN: extracción de entidades
+# ---------------------------
+# Usamos un modelo de spaCy entrenado para NER financiero (ejemplo simplificado)
+nlp = spacy.load("es_core_news_sm")
+
+def extraer_entidades(texto):
+    doc = nlp(texto)
+    entidades = {"comercio": None, "monto": None, "fecha": None}
+    for ent in doc.ents:
+        if ent.label_ in ["ORG", "PER"]:  # comercio
+            entidades["comercio"] = ent.text
+        elif ent.label_ == "MONEY":
+            entidades["monto"] = ent.text
+        elif ent.label_ == "DATE":
+            entidades["fecha"] = ent.text
+    return entidades
+
+# ---------------------------
+# 3. Clasificación de gastos
+# ---------------------------
+# Dataset de ejemplo (comercio -> categoría)
+comercios = ["Starbucks", "Uber", "Home Depot", "Farmacias del Ahorro"]
+categorias = ["Comida", "Transporte", "Hogar", "Salud"]
+
+vectorizador = TfidfVectorizer()
+X = vectorizador.fit_transform(comercios)
+
+modelo = LogisticRegression()
+modelo.fit(X, categorias)
+
+def clasificar_gasto(comercio):
+    X_test = vectorizador.transform([comercio])
+    pred = modelo.predict(X_test)[0]
+    return pred
+
+# ---------------------------
+# 4. Aprendizaje Activo
+# ---------------------------
+def actualizar_modelo(comercio, categoria_correcta):
+    global modelo, vectorizador, comercios, categorias
+    comercios.append(comercio)
+    categorias.append(categoria_correcta)
+    X = vectorizador.fit_transform(comercios)
+    modelo.fit(X, categorias)
+
+# ---------------------------
+# Ejemplo de uso
+# ---------------------------
+if __name__ == "__main__":
+    # Paso 1: OCR
+    texto = extraer_texto_recibo("recibo_ejemplo.jpg")
+    print("Texto OCR:", texto)
+
+    # Paso 2: PLN
+    entidades = extraer_entidades(texto)
+    print("Entidades extraídas:", entidades)
+
+    # Paso 3: Clasificación
+    if entidades["comercio"]:
+        categoria = clasificar_gasto(entidades["comercio"])
+        print(f"Clasificación automática: {categoria}")
+
+        # Simulación de corrección del usuario
+        correccion = "Comida"  # Ejemplo: el usuario corrige
+        actualizar_modelo(entidades["comercio"], correccion)
+        print("Modelo actualizado con corrección del usuario.")
+# ============================================
+# API REST para Clasificador Automático de Recibos
+# ============================================
+
+from flask import Flask, request, jsonify
+import pytesseract
+from PIL import Image
+import spacy
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+# Inicializar Flask
+app = Flask(__name__)
+
+# ---------------------------
+# Configuración de modelos
+# ---------------------------
+nlp = spacy.load("es_core_news_sm")
+
+# Dataset inicial (ejemplo)
+comercios = ["Starbucks", "Uber", "Home Depot", "Farmacias del Ahorro"]
+categorias = ["Comida", "Transporte", "Hogar", "Salud"]
+
+vectorizador = TfidfVectorizer()
+X = vectorizador.fit_transform(comercios)
+modelo = LogisticRegression()
+modelo.fit(X, categorias)
+
+# ---------------------------
+# Funciones auxiliares
+# ---------------------------
+def extraer_texto_recibo(ruta_imagen):
+    imagen = Image.open(ruta_imagen)
+    texto = pytesseract.image_to_string(imagen, lang="spa")
+    return texto
+
+def extraer_entidades(texto):
+    doc = nlp(texto)
+    entidades = {"comercio": None, "monto": None, "fecha": None}
+    for ent in doc.ents:
+        if ent.label_ in ["ORG", "PER"]:
+            entidades["comercio"] = ent.text
+        elif ent.label_ == "MONEY":
+            entidades["monto"] = ent.text
+        elif ent.label_ == "DATE":
+            entidades["fecha"] = ent.text
+    return entidades
+
+def clasificar_gasto(comercio):
+    X_test = vectorizador.transform([comercio])
+    pred = modelo.predict(X_test)[0]
+    return pred
+
+def actualizar_modelo(comercio, categoria_correcta):
+    global modelo, vectorizador, comercios, categorias
+    comercios.append(comercio)
+    categorias.append(categoria_correcta)
+    X = vectorizador.fit_transform(comercios)
+    modelo.fit(X, categorias)
+
+# ---------------------------
+# Endpoints de la API
+# ---------------------------
+
+@app.route("/procesar_recibo", methods=["POST"])
+def procesar_recibo():
+    """
+    Recibe una imagen de recibo, extrae texto, entidades y clasifica gasto.
+    """
+    file = request.files["imagen"]
+    ruta = "temp.jpg"
+    file.save(ruta)
+
+    texto = extraer_texto_recibo(ruta)
+    entidades = extraer_entidades(texto)
+
+    categoria = None
+    if entidades["comercio"]:
+        categoria = clasificar_gasto(entidades["comercio"])
+
+    return jsonify({
+        "texto_OCR": texto,
+        "entidades": entidades,
+        "categoria_predicha": categoria
+    })
+
+@app.route("/corregir", methods=["POST"])
+def corregir():
+    """
+    Recibe corrección del usuario y actualiza el modelo.
+    """
+    data = request.json
+    comercio = data.get("comercio")
+    categoria_correcta = data.get("categoria")
+
+    actualizar_modelo(comercio, categoria_correcta)
+
+    return jsonify({"mensaje": "Modelo actualizado con corrección."})
+
+# ---------------------------
+# Ejecutar servidor
+# ---------------------------
+if __name__ == "__main__":
+    app.run(debug=True)
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() {
+  runApp(ReciboApp());
+}
+
+class ReciboApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Clasificador de Recibos',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: ReciboPage(),
+    );
+  }
+}
+
+class ReciboPage extends StatefulWidget {
+  @override
+  _ReciboPageState createState() => _ReciboPageState();
+}
+
+class _ReciboPageState extends State<ReciboPage> {
+  File? _imagen;
+  String _resultado = "";
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _tomarFoto() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imagen = File(pickedFile.path);
+      });
+      _enviarRecibo(_imagen!);
+    }
+  }
+
+  Future<void> _enviarRecibo(File imagen) async {
+    var uri = Uri.parse("http://10.0.2.2:5000/procesar_recibo"); 
+    // ⚠️ Usa tu IP local o la del servidor en producción
+
+    var request = http.MultipartRequest("POST", uri);
+    request.files.add(await http.MultipartFile.fromPath("imagen", imagen.path));
+
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      var respStr = await response.stream.bytesToString();
+      var data = json.decode(respStr);
+
+      setState(() {
+        _resultado = """
+Texto OCR: ${data['texto_OCR']}
+Comercio: ${data['entidades']['comercio']}
+Monto: ${data['entidades']['monto']}
+Fecha: ${data['entidades']['fecha']}
+Categoría: ${data['categoria_predicha']}
+""";
+      });
+    } else {
+      setState(() {
+        _resultado = "Error al procesar el recibo.";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Clasificador de Recibos")),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _imagen == null
+                ? Text("No has tomado ninguna foto")
+                : Image.file(_imagen!),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _tomarFoto,
+              child: Text("Tomar Foto del Recibo"),
+            ),
+            SizedBox(height: 20),
+            Text(_resultado),
+          ],
+        ),
+      ),
+    );
+  }
+}
