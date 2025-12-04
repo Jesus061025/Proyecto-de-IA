@@ -1,0 +1,94 @@
+Ramas (5):
+
+lenguaje-tono-gramatica
+
+audio-tempo-armonia
+
+engagement-reproducciones-me-gusta
+
+semantica-topico-palabras-clave
+
+produccion-instrumentacion-mix
+
+1. Lenguaje: tono coloquial y gramática
+Variables: tono_colquial y calidad_gramatical
+
+Relación: ambas describen el estilo lingüístico de la letra; mayor coloquialidad puede correlacionar con menor formalidad gramatical.
+
+Qué miden:
+
+Tono coloquial: proporción de expresiones informales, jerga, contracciones.
+
+Gramática: puntuación en reglas (acento, concordancia, ortografía).
+
+Cómo medir:
+
+Coloquialidad: porcentaje de tokens presentes en un lexicón de jerga; índice entre 0 y 1.
+
+Gramática: score de un corrector o reglas heurísticas; índice 0–100.
+
+Comparabilidad: ambos son índices numéricos normalizados por canción/verso.
+
+2. Audio: tempo y armonía (key/escala)
+Variables: tempo_bpm y clave_musical (mapeada a energía/valencia armónica)
+
+Relación: tempo y clave influyen en la percepción emocional y rítmica.
+
+Qué miden:
+
+Tempo: pulsos por minuto.
+
+Armonía: clase tonal (C, D#, etc.); se puede convertir a una escala de valencia armónica 0–1.
+
+Cómo medir:
+
+BPM: análisis de audio (ya en base) o detección algorítmica.
+
+Valencia armónica: tabla fija que asigna puntuaciones a claves/escala mayor vs menor.
+
+Comparabilidad: ambos numéricos; se pueden correlacionar con “energía”.
+
+3. Engagement: reproducciones y me gusta
+Variables: reproducciones y me_gusta
+
+Relación: ambas reflejan interacción del público; me gusta suele ser función de reproducciones.
+
+Qué miden: volumen de consumo vs señal de preferencia.
+
+Cómo medir: valores enteros normalizados por ventana de tiempo (p. ej., semana).
+
+Comparabilidad: tasa de me gusta por reproducción (CTR_like = me_gusta / reproducciones).
+
+4. Semántica: tópico y palabras clave
+Variables: topico_principal y keywords
+
+Relación: las keywords alimentan el modelo que detecta el tópico.
+
+Qué miden: tema dominante y términos representativos de la letra.
+
+Cómo medir:
+
+Tópico: asignación por LDA o clasificación supervisada; etiqueta + probabilidad.
+
+Keywords: extracción por TF-IDF o RAKE; top-N términos.
+
+Comparabilidad: probabilidad del tópico (0–1) vs peso TF-IDF de keywords.
+
+5. Producción: instrumentación y nivel de mezcla
+Variables: instrumentos_presentes y nivel_mix (loudness dinámico, rango)
+
+Relación: la densidad instrumental impacta la mezcla y rango dinámico.
+
+Qué miden:
+
+Instrumentación: conteo y tipo (guitarra, percusión, sintetizador…).
+
+Mix: loudness promedio (LUFS), rango dinámico (DR).
+
+Cómo medir:
+
+Instrumentos: etiquetas en la base; transforma a conteo o vector binario.
+
+Mix: valores de análisis de audio (si están en la base) o aproximaciones.
+
+Comparabilidad: ambos numéricos; puedes correlacionar densidad instrumental vs DR.
